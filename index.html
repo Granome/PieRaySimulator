@@ -1,0 +1,360 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Pie Ray Simulator</title>
+  </head>
+  <body>
+    <p>WASD to move, F to increase RD, Shift+F to lower it. LMB and RMB to place spawners.</p>
+    <input type="checkbox" id="show_lazy_chunks" name="Show Lazy Chunks" value="slz">
+    <label for="slz">Hide Lazy Chunks</label>
+    <input type="checkbox" id="show_spawners" name="Show Spawners" value="ssp">
+    <label for="ssp">Hide Spawners</label>
+    <button type="button", id="random_spawner_pos">Randomize spawner position</button>
+
+
+    <div id="RD">Render Distance: 2</div>
+    
+    <div>
+
+        <canvas id="myCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
+    </div>
+
+
+    <canvas id="myChart" width="100px" height="100px" style="position:relative; left: 520px;top: -300px;"></canvas>
+    <p>This chunk loading/unloading is not exactly accurate to the game, but good enough to learn all pie ray cases.</p>
+  </body>
+  <script
+        src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0">
+  </script>
+
+  <script>
+      
+    var c = document.getElementById("myCanvas");
+    window.addEventListener('keydown',this.check,false);
+    c.addEventListener('click', this.on_click, false);
+
+    const slc = document.querySelector("#show_lazy_chunks");
+    slc.addEventListener("click", (e) => {
+        redraw();
+    });
+
+    const ssp = document.querySelector("#show_spawners");
+    ssp.addEventListener("click", (e) => {
+        redraw();
+    });
+
+    const rsp = document.querySelector("#random_spawner_pos");
+    rsp.addEventListener("click", (e) => {
+        spawner_x = get_random_spawner_pos();
+        spawner_y = get_random_spawner_pos();
+        redraw();
+    });
+
+
+
+
+    c.oncontextmenu = e => {
+        e.preventDefault();
+        e.stopPropagation();
+        on_right_click();
+    }
+
+    
+
+    var canvas_chart = document.getElementById("myChart");
+    var ctx_chart = canvas_chart.getContext("2d");
+
+    
+    
+
+
+
+    var ctx = c.getContext("2d");
+
+    var RD_element = document.getElementById("RD");
+    var RD = 2;
+
+    var LazyRD = RD;
+
+
+    
+    
+    
+    
+    var grid_size = 23;
+    var cell_size = 512/grid_size;
+    
+    var player_size = cell_size * 0.8;
+    // player position in grid coordinates
+    var player_x = Math.ceil(grid_size/2);
+    var player_y = Math.ceil(grid_size/2);
+
+
+    var spawner_x = get_random_spawner_pos();
+    var spawner_y = get_random_spawner_pos();
+
+    var spawner2_x = 100;
+    var spawner2_y = 100;
+
+    var spawner_size = cell_size * 0.6;
+
+
+
+    
+    var lastend = 4.7124;
+    var data = [70,20,10];
+    var myTotal = 0;
+    var myColor = ['#46CE66','#4ee4cc', '#c66ee4'];
+
+
+
+    redraw();
+
+
+
+    function get_random_spawner_pos()
+    {
+        var availible = grid_size - 15;
+        var pos = Math.ceil(Math.random() * (availible-1)+1);
+        if (pos <= (grid_size - 15)/2) {return pos};
+        return pos + 15;
+    }
+
+    function draw_grid()
+    {
+        ctx.beginPath();
+        
+        for (let i = 0; i < grid_size; i++) 
+        {
+            ctx.moveTo(i*cell_size, 0);
+            ctx.lineTo(i*cell_size, 512);
+            
+    
+            ctx.moveTo(0, i*cell_size);
+            ctx.lineTo(512, i*cell_size);
+        }
+        ctx.stroke();
+    }
+
+    function draw_RD()
+    {
+        ctx.fillStyle = "rgb(0 0 255 / 30%)";
+
+        ctx.fillRect((player_x*cell_size-cell_size/2)-RD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-RD*cell_size-cell_size/2, RD*cell_size*2 + cell_size, RD*cell_size*2 + cell_size);
+        
+        if (!slc.checked)
+        {
+            ctx.fillStyle = "rgb(228 210 51 / 20%)";
+            ctx.fillRect((player_x*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, LazyRD*cell_size*2 + cell_size, LazyRD*cell_size*2 + cell_size);
+            
+        }
+    }
+
+    function draw_player()
+    {
+        ctx.fillStyle = "rgb(0 200 0 / 100%)";
+
+        ctx.fillRect(player_x*cell_size-cell_size/2-player_size/2, player_y*cell_size-cell_size/2-player_size/2, player_size, player_size);
+    }
+
+    function draw_spawners()
+    {
+        if (ssp.checked){return};
+
+        ctx.fillStyle = "#4ee4cc";
+
+        ctx.fillRect(spawner_x*cell_size-cell_size/2-spawner_size/2, spawner_y*cell_size-cell_size/2-spawner_size/2, spawner_size, spawner_size);
+        
+        ctx.fillStyle = "#45e6ab";
+        ctx.fillRect(spawner2_x*cell_size-cell_size/2-spawner_size/2, spawner2_y*cell_size-cell_size/2-spawner_size/2, spawner_size, spawner_size);
+
+    }
+
+    function check(e) 
+    {
+        code = e.keyCode;
+        if (code == 87)
+        {
+            player_y--;
+        }
+        else if (code == 65)
+        {
+            player_x--;  
+        }
+        else if (code == 68)
+        {
+            player_x++;
+        }
+        else if (code == 83)
+        {
+            player_y++;
+
+        }
+
+        else if (code == 70  )
+        {
+            if (e.shiftKey)
+            {
+               change_RD(-1);
+            }
+            else
+            {
+                change_RD(+1);
+            }
+        }
+        else
+        {
+            
+            // alert(code)
+        }
+
+        if (player_x < 1)
+        {
+            player_x = 1;
+        }
+        
+        if (player_y < 1)
+        {
+            player_y = 1;
+        }
+
+        if (player_x > grid_size)
+        {
+            player_x = grid_size;
+        }
+
+        if (player_y > grid_size)
+        {
+            player_y = grid_size;
+        }
+
+        redraw();
+    }
+
+    function on_click(e)
+    {
+        const rect = c.getBoundingClientRect()
+
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+
+        if (spawner_x == Math.ceil(x / cell_size) && spawner_y == Math.ceil(y /cell_size))
+        {
+              spawner_x = 100;
+              spawner_y = 100;      
+        }
+        else
+        {
+            spawner_x = Math.ceil(x / cell_size);
+            spawner_y = Math.ceil(y /cell_size);
+
+        }
+
+        redraw();
+
+    }
+
+    function on_right_click(e)
+    {
+        const rect = c.getBoundingClientRect()
+
+        var x = event.clientX - rect.left;
+        var y = event.clientY - rect.top;
+
+        if (spawner2_x == Math.ceil(x / cell_size) && spawner2_y == Math.ceil(y /cell_size))
+        {
+              spawner2_x = 100;
+              spawner2_y = 100;      
+        }
+        else
+        {
+            spawner2_x = Math.ceil(x / cell_size);
+            spawner2_y = Math.ceil(y /cell_size);
+
+        }
+
+
+        redraw();
+    }
+
+    function change_RD(d)
+    {
+        if (RD + d < 2) {return}
+        
+        if (RD + d > grid_size ) {return}
+
+        RD += d;
+
+        if (RD > LazyRD)
+        {
+            LazyRD = RD;
+        }
+        else if (RD + 3 < LazyRD)
+        {
+            LazyRD--;
+        } 
+        RD_element.innerHTML = `Render Distance: ${RD}`;
+    }
+    
+    function redraw()
+    {
+        check_spawner();
+        
+        ctx_chart.clearRect(0, 0, 100, 100);
+
+        draw_pie();
+
+        ctx.clearRect(0, 0, 512, 512);
+        draw_grid();
+        draw_player();
+        draw_spawners();
+        draw_RD();
+
+    }
+    
+    function check_spawner()
+    {
+
+
+        if (spawner_x >= player_x-Math.floor( LazyRD) && spawner_x <= player_x+Math.floor( LazyRD))
+        {
+            if (spawner_y >= player_y-Math.floor( LazyRD) && spawner_y <= player_y+Math.floor( LazyRD))
+            {
+                data[1] = 20;
+                return;
+            }
+        }
+        if (spawner2_x >= player_x-Math.floor( LazyRD) && spawner2_x <= player_x+Math.floor( LazyRD))
+        {
+            if (spawner2_y >= player_y-Math.floor( LazyRD) && spawner2_y <= player_y+Math.floor( LazyRD))
+            {
+                data[1] = 20;
+                return;
+            }
+        }
+        data[1] = 0;
+    }
+
+    function draw_pie()
+    {
+        myTotal = 0;
+        for(var e = 0; e < data.length; e++)
+        {
+            myTotal += data[e];
+        }
+
+        for (var i = 0; i < data.length; i++) {
+            ctx_chart.fillStyle = myColor[i];
+            ctx_chart.beginPath();
+            ctx_chart.moveTo(canvas_chart.width/2,canvas_chart.height/2);
+            ctx_chart.arc(canvas_chart.width/2,canvas_chart.height/2,canvas_chart.height/2,lastend,lastend+(Math.PI*2*(data[i]/myTotal)),false);
+            ctx_chart.lineTo(canvas_chart.width/2,canvas_chart.height/2);
+            ctx_chart.fill();
+            lastend += Math.PI*2*(data[i]/myTotal);
+        }
+        
+    }
+    </script>
+
+
+</html>
