@@ -28,6 +28,8 @@
   </script>
 
   <script>
+
+    //GENUINELY SORRY FOR WHAT YOU ARE ABOUT TO READ
       
     var c = document.getElementById("myCanvas");
     window.addEventListener('keydown',this.check,false);
@@ -74,14 +76,14 @@
     var RD_element = document.getElementById("RD");
     var RD = 2;
 
-    var LazyRD = RD;
+    
 
 
     
     
     
     
-    var grid_size = 23;
+    var grid_size = 31;
     var cell_size = 512/grid_size;
     
     var player_size = cell_size * 0.8;
@@ -97,6 +99,15 @@
     var spawner2_y = 100;
 
     var spawner_size = cell_size * 0.6;
+
+
+
+    var LazyRD = RD;
+    var LazyChunks = Array(grid_size).fill().map(() => Array(grid_size).fill(0));
+
+    compute_LC();
+
+  
 
 
 
@@ -145,7 +156,18 @@
         if (!slc.checked)
         {
             ctx.fillStyle = "rgb(228 210 51 / 20%)";
-            ctx.fillRect((player_x*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, LazyRD*cell_size*2 + cell_size, LazyRD*cell_size*2 + cell_size);
+            for(var x = 0; x < grid_size; x++)
+            {
+                for(var y = 0; y < grid_size; y++)
+                {
+                    if (LazyChunks[x][y])
+                    {
+                        ctx.fillRect(x*cell_size, y*cell_size, cell_size, cell_size);
+                    }
+                }
+            }
+            
+            // ctx.fillRect((player_x*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, LazyRD*cell_size*2 + cell_size, LazyRD*cell_size*2 + cell_size);
             
         }
     }
@@ -176,18 +198,61 @@
         if (code == 87)
         {
             player_y--;
+            if (player_y < 1)
+            {
+                player_y = 1;
+                compute_LC(true);
+            }
+            else
+            {
+                compute_LC(true, 0, -1);
+            }
+
         }
         else if (code == 65)
-        {
-            player_x--;  
+        {             
+            player_x--; 
+            if (player_x < 1)
+            {
+                player_x = 1;
+                compute_LC(true);
+            }
+            else
+            {
+                compute_LC(true, -1, 0);
+            }
+
+            
         }
         else if (code == 68)
         {
             player_x++;
+            if (player_x > grid_size)
+            {
+                player_x = grid_size;
+                compute_LC(true);
+            }
+            else
+            {
+                compute_LC(true, 1, 0);
+
+
+            }
         }
         else if (code == 83)
         {
             player_y++;
+            if (player_y > grid_size)
+            {
+                player_y = grid_size;
+                compute_LC(true);
+            }
+            else
+            {
+                compute_LC(true, 0, 1);
+            }
+    
+            
 
         }
 
@@ -208,25 +273,12 @@
             // alert(code)
         }
 
-        if (player_x < 1)
-        {
-            player_x = 1;
-        }
+
         
-        if (player_y < 1)
-        {
-            player_y = 1;
-        }
 
-        if (player_x > grid_size)
-        {
-            player_x = grid_size;
-        }
 
-        if (player_y > grid_size)
-        {
-            player_y = grid_size;
-        }
+
+ 
 
         redraw();
     }
@@ -285,24 +337,141 @@
 
         RD += d;
 
-        if (RD > LazyRD)
-        {
-            LazyRD = RD;
-        }
-        else if (RD + 3 < LazyRD)
-        {
-            LazyRD--;
-        } 
+        compute_LC(false);
         RD_element.innerHTML = `Render Distance: ${RD}`;
     }
+
+    function compute_LC(moved, horizontal=0, vertical=0)
+    {
+
+
+    // I hava no fucking idea how this works
+
+        for(var x = 0; x < grid_size; x++)
+        {
+            for(var y = 0; y < grid_size; y++)
+            {
+                if ((player_x-1-RD <= x && x <= player_x-1+RD) && (player_y-1-RD <= y && y <= player_y-1+RD))
+                {
+                    LazyChunks[x][y] = 2;
+                }
+
+            }
+        }
+
+        //if player goes left, remove rightmost row, that wasnt in rd last time
+        if(horizontal == 1)
+        {
+            var removed = false;
+            for(var x = 0; (x<grid_size) && !removed; x++)
+            {
+                // console.log(x);
+                for(var y = 0; y < grid_size; y++)
+                {
+                    
+                    if (LazyChunks[x][y])
+                    {
+                        if(x < player_x-1-RD-1)
+                        {
+                            LazyChunks[x][y] = 0;
+                            removed = true;
+                        }
+                    }
+
+                }
+            }
+        }
+        
+        else if (horizontal == -1)
+        {
+            var removed = false;
+            for(var x = grid_size-1; (x >= 0) && !removed; x--)
+            {
+                for(var y = 0; y < grid_size; y++)
+                {
+                    if (LazyChunks[x][y])
+                    {
+                        if(x > player_x-1+RD+1)
+                        {
+                            LazyChunks[x][y] = 0;
+                            removed = true;
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        else if (vertical == 1)
+        {
+            
+            var removed = false;
+            for(var y = 0; (y<grid_size) && !removed; y++)
+            {
+                for(var x = 0; x < grid_size; x++)
+                {
+                    if (LazyChunks[x][y])
+                    {
+                        if(y < player_y-1-RD-1)
+                        {
+                            LazyChunks[x][y] = 0;
+                            removed = true;
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        else if (vertical == -1)
+        {
+            var removed = false;
+            for(var y = grid_size-1; (y >= 0) && !removed; y--)
+            {
+                for(var x = 0; x < grid_size; x++)
+                {
+                    if (LazyChunks[x][y])
+                    {
+                        if(y > player_y-1+RD+1)
+                        {
+                            LazyChunks[x][y] = 0;
+                            removed = true;
+                        }
+                    }
+
+                }
+            }
+
+        }
+
+        var LC_RD = Math.max(RD, 3); //at 2 rd we have one more ring of LC for some reason
+        for(var x = 0; x < grid_size; x++)
+        {
+            for(var y = 0; y < grid_size; y++)
+            {
+
+                if ((player_x-1-LC_RD <= x && x <= player_x-1+LC_RD) && (player_y-1-LC_RD <= y && y <= player_y-1+LC_RD))
+                {
+                    LazyChunks[x][y] = 1;
+                }
+
+                if ((x < player_x-1-LC_RD - 3) || (x > player_x-1+LC_RD + 3) || (y < player_y-1-LC_RD - 3) || (y > player_y-1+LC_RD + 3))
+                {
+                    LazyChunks[x][y] = 0; 
+                }
+            }
+        }
+    }
+
+
+
+
     
     function redraw()
     {
-        check_spawner();
         
-        ctx_chart.clearRect(0, 0, 100, 100);
-
-        draw_pie();
 
         ctx.clearRect(0, 0, 512, 512);
         draw_grid();
@@ -310,28 +479,31 @@
         draw_spawners();
         draw_RD();
 
+        check_spawner();
+        
+        ctx_chart.clearRect(0, 0, 100, 100);
+
+        draw_pie();
+
     }
     
     function check_spawner()
     {
 
-
-        if (spawner_x >= player_x-Math.floor( LazyRD) && spawner_x <= player_x+Math.floor( LazyRD))
-        {
-            if (spawner_y >= player_y-Math.floor( LazyRD) && spawner_y <= player_y+Math.floor( LazyRD))
+        for(var x = 0; x < grid_size; x++)
             {
-                data[1] = 20;
-                return;
+                for(var y = 0; y < grid_size; y++)
+                {
+                    if (LazyChunks[x][y])
+                    {
+                        if ((spawner_x-1 == x && spawner_y-1 == y) || (spawner2_x-1 == x && spawner2_y-1 == y))
+                        {
+                            data[1] = 20;
+                            return;
+                        }
+                    }
+                }
             }
-        }
-        if (spawner2_x >= player_x-Math.floor( LazyRD) && spawner2_x <= player_x+Math.floor( LazyRD))
-        {
-            if (spawner2_y >= player_y-Math.floor( LazyRD) && spawner2_y <= player_y+Math.floor( LazyRD))
-            {
-                data[1] = 20;
-                return;
-            }
-        }
         data[1] = 0;
     }
 
