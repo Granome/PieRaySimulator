@@ -4,15 +4,23 @@
     <title>Pie Ray Simulator</title>
   </head>
   <body>
-    <p>WASD to move, F to increase RD, Shift+F to lower it. LMB and RMB to place spawners.</p>
-    <input type="checkbox" id="show_lazy_chunks" name="Show Lazy Chunks" value="slz">
-    <label for="slz">Hide Lazy Chunks</label>
-    <input type="checkbox" id="show_spawners" name="Show Spawners" value="ssp">
-    <label for="ssp">Hide Spawners</label>
-    <button type="button", id="random_spawner_pos">Randomize spawner position</button>
+    <p>WASD to move, F to increase RD, Shift+F to lower it. LMB and RMB to place spawners. Zoom with + -</p>
+    <input type="checkbox" id="hide_lazy_chunks" name="Hide Lazy Chunks" value="hlz">
+    <label for="hlz">Hide Lazy Chunks</label>
+    <input type="checkbox" id="hide_spawners" name="Hide Spawners" value="hsp">
+    <label for="hsp">Hide Spawners</label>
+    <input type="checkbox" id="show_quadrants" name="Show Nether Regions" value="sq">
+    <label for="sq">Show Nether Regions</label>
+    <p>
+        <button type="button", id="random_spawner_pos">Randomize spawner position</button>
+    </p>
+
+    
 
 
     <div id="RD">Render Distance: 2</div>
+
+    <div id="coords"></div>
     
     <div>
 
@@ -22,6 +30,7 @@
 
     <canvas id="myChart" width="100px" height="100px" style="position:relative; left: 520px;top: -300px;"></canvas>
     <p>This chunk loading/unloading is not exactly accurate to the game, but good enough to learn all pie ray cases.</p>
+    <p>Made by Granome</p>
   </body>
   <script
         src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0">
@@ -35,13 +44,18 @@
     window.addEventListener('keydown',this.check,false);
     c.addEventListener('click', this.on_click, false);
 
-    const slc = document.querySelector("#show_lazy_chunks");
+    const slc = document.querySelector("#hide_lazy_chunks");
     slc.addEventListener("click", (e) => {
         redraw();
     });
 
-    const ssp = document.querySelector("#show_spawners");
-    ssp.addEventListener("click", (e) => {
+    const hsp = document.querySelector("#hide_spawners");
+    hsp.addEventListener("click", (e) => {
+        redraw();
+    });
+
+    const sq = document.querySelector("#show_quadrants");
+    sq.addEventListener("click", (e) => {
         redraw();
     });
 
@@ -77,6 +91,11 @@
     var RD_element = document.getElementById("RD");
     var RD = 2;
 
+    var coord_element = document.getElementById("coords");
+    c.addEventListener("mousemove", (event) => 
+    {
+        show_mouse_coordinates(event);
+    });
     
 
 
@@ -84,10 +103,11 @@
     
     
     
-    var grid_size = 31;
+    var grid_size = 51;
     var cell_size = 512/grid_size;
     
     var player_size = cell_size * 0.8;
+
     // player position in grid coordinates
     var player_x = Math.ceil(grid_size/2);
     var player_y = Math.ceil(grid_size/2);
@@ -124,6 +144,18 @@
 
 
 
+    function show_mouse_coordinates(event)
+    {
+        const rect = c.getBoundingClientRect()
+
+        var x = Math.ceil((event.clientX - rect.left) / cell_size) - (grid_size-1) / 2 - 1;
+        var y = Math.ceil((event.clientY - rect.top) / cell_size) - (grid_size-1) / 2 - 1;
+
+        coord_element.innerHTML = `${x}, ${y}`
+
+    }
+
+
     function get_random_spawner_pos()
     {
         var availible = grid_size - 15;
@@ -150,13 +182,10 @@
 
     function draw_RD()
     {
-        ctx.fillStyle = "rgb(0 0 255 / 30%)";
 
-        ctx.fillRect((player_x*cell_size-cell_size/2)-RD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-RD*cell_size-cell_size/2, RD*cell_size*2 + cell_size, RD*cell_size*2 + cell_size);
-        
         if (!slc.checked)
         {
-            ctx.fillStyle = "rgb(228 210 51 / 20%)";
+            ctx.fillStyle = "rgb(228 210 51 / 60%)";
             for(var x = 0; x < grid_size; x++)
             {
                 for(var y = 0; y < grid_size; y++)
@@ -171,6 +200,10 @@
             // ctx.fillRect((player_x*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-LazyRD*cell_size-cell_size/2, LazyRD*cell_size*2 + cell_size, LazyRD*cell_size*2 + cell_size);
             
         }
+        ctx.fillStyle = "rgb(0 0 255 / 60%)";
+
+        ctx.fillRect((player_x*cell_size-cell_size/2)-RD*cell_size-cell_size/2, (player_y*cell_size-cell_size/2)-RD*cell_size-cell_size/2, RD*cell_size*2 + cell_size, RD*cell_size*2 + cell_size);
+        
     }
 
     function draw_player()
@@ -182,9 +215,12 @@
 
     function draw_spawners()
     {
-        if (ssp.checked){return};
+        if (hsp.checked){return};
 
-        ctx.fillStyle = "#4ee4cc";
+        // ctx.fillStyle = "#4ee4cc";
+        ctx.fillStyle = "rgb(2 127 222 / 100%)";
+        
+
 
         ctx.fillRect(spawner_x*cell_size-cell_size/2-spawner_size/2, spawner_y*cell_size-cell_size/2-spawner_size/2, spawner_size, spawner_size);
         
@@ -272,6 +308,16 @@
         {
             e.preventDefault();
         }
+
+        else if (e.keyCode === 189 ) 
+        {
+            zoom(2);
+        }
+
+        else if (e.keyCode === 187 ) 
+        {
+            zoom(-2);
+        }
         else
         {
             
@@ -286,6 +332,30 @@
  
 
         redraw();
+    }
+
+    function zoom(d)
+    {
+        if (!( (grid_size+d < 13) || (grid_size+d > 71)))
+        {
+            grid_size += d;
+
+            cell_size = 512/grid_size;
+    
+            player_size = cell_size * 0.8;
+            spawner_size = cell_size * 0.6;
+            LazyChunks = Array(grid_size).fill().map(() => Array(grid_size).fill(0));
+            
+            player_x += d/2;
+            player_y += d/2;
+            
+            spawner_x += d/2;
+            spawner_y += d/2;
+            spawner2_x += d/2;
+            spawner2_y += d/2;
+            compute_LC();
+            // redraw();
+        }
     }
 
     function on_click(e)
@@ -338,7 +408,7 @@
     {
         if (RD + d < 2) {return}
         
-        if (RD + d > grid_size ) {return}
+        if (RD + d > 32 ) {return}
 
         RD += d;
 
@@ -470,6 +540,52 @@
         }
     }
 
+    function draw_quadrants()
+    {
+        if (sq.checked)
+        {
+            for(var x = -(grid_size-1)/2; x <= grid_size; x++)
+            {
+                for(var y = -(grid_size-1)/2; y <= grid_size; y++)
+                {
+                    var red = false;
+                    if (x >= 0 && ((x % 27) > 23))
+                    {
+                        red = true;  
+                    }
+                    else if (x < 0 && ((Math.abs(x) % 27) <= 4))
+                    {
+                        red = true;
+                    }
+                    else if (y >= 0 && ((y % 27) > 23))
+                    {
+                        red = true;
+                        
+                    }
+                    else if (y < 0 && ((Math.abs(y) % 27) <= 4))
+                    {
+                        red = true;
+                    };
+
+
+                    if (red)
+                    {
+                        ctx.fillStyle = "rgb(209 109 117 / 80%)";
+                    }
+                    else
+                    {
+                        ctx.fillStyle = "rgb(118 245 156 / 80%)"; //green
+                    }
+
+                    ctx.fillRect((x+(grid_size-1)/2) * cell_size, (y+(grid_size-1)/2) * cell_size, cell_size, cell_size);
+
+
+                }
+            }
+
+        }
+    }
+
 
 
 
@@ -477,13 +593,17 @@
     function redraw()
     {
         
-
         ctx.clearRect(0, 0, 512, 512);
-        draw_grid();
+        
+        ctx.fillStyle = "rgb(140 140 140 / 50%)"; 
+        ctx.fillRect(0, 0, 512, 512);
+        draw_quadrants();
+        draw_RD();
         draw_player();
         draw_spawners();
-        draw_RD();
 
+        draw_grid();
+        
         check_spawner();
         
         ctx_chart.clearRect(0, 0, 100, 100);
