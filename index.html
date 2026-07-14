@@ -89,7 +89,8 @@
     var ctx = c.getContext("2d");
 
     var RD_element = document.getElementById("RD");
-    var RD = 2;
+    var displayed_RD = 2;
+    var RD = 3;
 
     var coord_element = document.getElementById("coords");
     c.addEventListener("mousemove", (event) => 
@@ -103,7 +104,7 @@
     
     
     
-    var grid_size = 51;
+    var grid_size = 27;
     var cell_size = 512/grid_size;
     
     var player_size = cell_size * 0.8;
@@ -224,7 +225,8 @@
 
         ctx.fillRect(spawner_x*cell_size-cell_size/2-spawner_size/2, spawner_y*cell_size-cell_size/2-spawner_size/2, spawner_size, spawner_size);
         
-        ctx.fillStyle = "#45e6ab";
+        ctx.fillStyle = "rgb(2 127 252 / 100%)";
+
         ctx.fillRect(spawner2_x*cell_size-cell_size/2-spawner_size/2, spawner2_y*cell_size-cell_size/2-spawner_size/2, spawner_size, spawner_size);
 
     }
@@ -406,14 +408,24 @@
 
     function change_RD(d)
     {
-        if (RD + d < 2) {return}
-        
-        if (RD + d > 32 ) {return}
+        if (displayed_RD + d < 2) {return}
 
-        RD += d;
+        
+        if (displayed_RD + d > 32 ) {return}
+
+        displayed_RD += d;
+        
+        if (displayed_RD > 2)
+        {
+            RD = displayed_RD - 1;
+        }
+        else
+        {
+            RD = displayed_RD;
+        };
 
         compute_LC(false);
-        RD_element.innerHTML = `Render Distance: ${RD}`;
+        RD_element.innerHTML = `Render Distance: ${displayed_RD}`;
     }
 
     function compute_LC(moved, horizontal=0, vertical=0)
@@ -521,7 +533,7 @@
 
         }
 
-        var LC_RD = Math.max(RD, 3); //at 2 rd we have one more ring of LC for some reason
+        var LC_RD = Math.max(RD, 2); //at 2 rd we have one more ring of LC for some reason
         for(var x = 0; x < grid_size; x++)
         {
             for(var y = 0; y < grid_size; y++)
