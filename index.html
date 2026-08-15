@@ -4,37 +4,47 @@
     <title>Pie Ray Simulator</title>
   </head>
   <body>
-    <p>WASD to move, F to increase RD, Shift+F to lower it. LMB and RMB to place spawners. Zoom with + -</p>
+    <p>WASD to move </p>
+    <p>F to increase RD, Shift+F to lower it</p>
+    <p>R to reset lazy chunks</p>
+    <p>LMB and RMB to place spawners</p>
+    <p>Zoom with + -</p>
     <input type="checkbox" id="hide_lazy_chunks" name="Hide Lazy Chunks" value="hlz">
     <label for="hlz">Hide Lazy Chunks</label>
     <input type="checkbox" id="hide_spawners" name="Hide Spawners" value="hsp">
     <label for="hsp">Hide Spawners</label>
     <input type="checkbox" id="show_quadrants" name="Show Nether Regions" value="sq">
     <label for="sq">Show Nether Regions</label>
+    
+
     <p>
         <button type="button", id="random_spawner_pos">Randomize spawner position</button>
+
+        <button type="button", id="random_offset">Randomize coordinates offset</button>
     </p>
 
     
 
 
-    <div id="RD">Render Distance: 2</div>
+    
 
-    <div id="coords"></div>
+
     
     <div>
-
         <canvas id="myCanvas" width="512" height="512" style="border:1px solid #000000;"></canvas>
     </div>
 
 
     <canvas id="myChart" width="100px" height="100px" style="position:relative; left: 520px;top: -300px;"></canvas>
-    <p>This chunk loading/unloading is not exactly accurate to the game, but good enough to learn all pie ray cases.</p>
+
+    <div id="RD" style="position:relative; left: 520px;top: -300px;">Render Distance: 2</div>
+    <div id="coords" style="position:relative; left: 520px;top: -300px;"></div>
+
+
     <p>Made by Granome</p>
+    <p>Feel free to contribute to beautifying this ui (please)</p>
   </body>
-  <script
-        src="https://cdn.jsdelivr.net/npm/chart.js@4.5.0">
-  </script>
+
 
   <script>
 
@@ -66,6 +76,12 @@
         redraw();
     });
 
+    const rco = document.querySelector("#random_offset");
+    rco.addEventListener("click", (e) => {
+        chunk_offset = [get_random_offset(), get_random_offset()];
+        redraw();
+    });
+
 
 
 
@@ -89,8 +105,10 @@
     var ctx = c.getContext("2d");
 
     var RD_element = document.getElementById("RD");
-    var displayed_RD = 2;
-    var RD = 3;
+    var displayed_RD = 6;
+    var RD = 5;
+
+    var chunk_offset = [0, 0];
 
     var coord_element = document.getElementById("coords");
     c.addEventListener("mousemove", (event) => 
@@ -149,8 +167,8 @@
     {
         const rect = c.getBoundingClientRect()
 
-        var x = Math.ceil((event.clientX - rect.left) / cell_size) - (grid_size-1) / 2 - 1;
-        var y = Math.ceil((event.clientY - rect.top) / cell_size) - (grid_size-1) / 2 - 1;
+        var x = Math.ceil((event.clientX - rect.left) / cell_size) - (grid_size-1) / 2 - 1 + chunk_offset[0];
+        var y = Math.ceil((event.clientY - rect.top) / cell_size) - (grid_size-1) / 2 - 1 + + chunk_offset[1];
 
         coord_element.innerHTML = `${x}, ${y}`
 
@@ -163,6 +181,13 @@
         var pos = Math.ceil(Math.random() * (availible-1)+1);
         if (pos <= (grid_size - 15)/2) {return pos};
         return pos + 15;
+    }
+    function get_random_offset()
+    {
+        var A = 15;
+        var pos = Math.ceil(Math.random() * 2 * A - A);
+  
+        return pos;
     }
 
     function draw_grid()
@@ -233,8 +258,7 @@
 
     function check(e) 
     {
-        code = e.keyCode;
-        if (code == 87)
+        if (e.code === "KeyW")
         {
             player_y--;
             if (player_y < 1)
@@ -248,7 +272,7 @@
             }
 
         }
-        else if (code == 65)
+        else if (e.code === "KeyA")
         {             
             player_x--; 
             if (player_x < 1)
@@ -263,7 +287,7 @@
 
             
         }
-        else if (code == 68)
+        else if (e.code === "KeyD")
         {
             player_x++;
             if (player_x > grid_size)
@@ -278,7 +302,7 @@
 
             }
         }
-        else if (code == 83)
+        else if (e.code === "KeyS")
         {
             player_y++;
             if (player_y > grid_size)
@@ -295,7 +319,7 @@
 
         }
 
-        else if (code == 70  )
+        else if (e.code === "KeyF")
         {
             if (e.shiftKey)
             {
@@ -306,19 +330,25 @@
                 change_RD(+1);
             }
         }
-        else if (e.keyCode === 114 ) 
+        else if (e.code === "F3") 
         {
             e.preventDefault();
         }
 
-        else if (e.keyCode === 189 ) 
+        else if (e.code === "Minus" ) 
         {
             zoom(2);
         }
 
-        else if (e.keyCode === 187 ) 
+        else if (e.code === "Equal" ) 
         {
             zoom(-2);
+        }
+
+        else if (e.code === "KeyR")
+        {
+            console.log("a");
+            reset_LC();
         }
         else
         {
@@ -326,12 +356,6 @@
             // alert(code)
         }
 
-
-        
-
-
-
- 
 
         redraw();
     }
@@ -552,29 +576,51 @@
         }
     }
 
+    function reset_LC()
+    {
+
+        for(var x = 0; x < grid_size; x++)
+        {
+            for(var y = 0; y < grid_size; y++)
+            {
+                if ((player_x-1-RD <= x && x <= player_x-1+RD) && (player_y-1-RD <= y && y <= player_y-1+RD))
+                {
+                    LazyChunks[x][y] = 2;
+                }
+                else
+                {
+                    LazyChunks[x][y] = 0;
+                }
+
+            }
+        }
+    }
+
     function draw_quadrants()
     {
         if (sq.checked)
         {
             for(var x = -(grid_size-1)/2; x <= grid_size; x++)
             {
+                offset_x = x + chunk_offset[0];
                 for(var y = -(grid_size-1)/2; y <= grid_size; y++)
                 {
+                    offset_y = y + chunk_offset[1];
                     var red = false;
-                    if (x >= 0 && ((x % 27) > 23))
+                    if (offset_x >= 0 && ((offset_x % 27) > 23))
                     {
                         red = true;  
                     }
-                    else if (x < 0 && ((Math.abs(x) % 27) <= 4))
+                    else if (offset_x < 0 && ((Math.abs(offset_x) % 27) <= 4))
                     {
                         red = true;
                     }
-                    else if (y >= 0 && ((y % 27) > 23))
+                    else if (offset_y >= 0 && ((offset_y % 27) > 23))
                     {
                         red = true;
                         
                     }
-                    else if (y < 0 && ((Math.abs(y) % 27) <= 4))
+                    else if (offset_y < 0 && ((Math.abs(offset_y) % 27) <= 4))
                     {
                         red = true;
                     };
